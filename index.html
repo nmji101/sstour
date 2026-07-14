@@ -33,6 +33,7 @@
   .pin.popup{background:var(--coral);color:#fff}.pin.shop{background:var(--blue);color:#fff}
   .pin.cafe{background:var(--matcha);color:#fff}.pin.dessert{background:var(--butter);color:var(--ink)}
   .pin.star{width:42px;height:42px;font-size:19px;background:var(--coral);color:#fff;border-width:3px;box-shadow:3px 3px 0 var(--ink)}
+  .pin.home{width:34px;height:34px;font-size:18px;background:#fff;border:3px solid var(--ink);box-shadow:2px 2px 0 rgba(30,42,58,.4)}
   .pin.dim{opacity:.22;filter:grayscale(.5)}
 
   .leaflet-popup-content-wrapper{border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--shadow);padding:2px}
@@ -154,6 +155,10 @@ P.forEach(p=>{
   markers[p.id]=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:`<div class="pin ${p.cat}">${p.id}</div>`,iconSize:[29,29],iconAnchor:[15,15]})})
     .addTo(map).bindPopup(popHTML(p));
 });
+// home marker (지도만 표시, 목록 제외)
+const HOME={n:'우리집',lat:37.5418121,lng:127.0549382};
+markers.home=L.marker([HOME.lat,HOME.lng],{icon:L.divIcon({className:'',html:'<div class="pin home">🏠</div>',iconSize:[34,34],iconAnchor:[17,17]}),zIndexOffset:900})
+  .addTo(map).bindPopup('<div class="pc"><div class="nm">🏠 우리집</div><div class="en">성수일로4가길 11</div><a href="'+gmap(HOME.lat,HOME.lng)+'" target="_blank" rel="noopener">지도 앱에서 열기 →</a></div>');
 // fit to all
 const grp=L.featureGroup(Object.values(markers)); map.fitBounds(grp.getBounds().pad(0.12));
 
