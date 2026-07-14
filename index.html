@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>성수 팝업파티 지도 · 7.17</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@400;500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F0E6;--ink:#1E2A3A;
+    --coral:#E8455C;--blue:#2E5BD8;--matcha:#4E8544;--butter:#E8A11F;
+    --shadow:3px 3px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Gothic A1','Apple SD Gothic Neo',sans-serif;color:var(--ink);background:var(--paper);overflow:hidden}
+  .app{height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative}
+
+  .top{padding:11px 13px 9px;background:var(--paper);z-index:600;border-bottom:2.5px solid var(--ink)}
+  .titlerow{display:flex;align-items:baseline;gap:8px}
+  .top h1{font-family:'Black Han Sans',sans-serif;font-weight:400;font-size:21px;letter-spacing:-.6px}
+  .top .date{font-family:'Space Mono',monospace;font-weight:700;font-size:11px;background:var(--coral);color:#fff;border:2px solid var(--ink);border-radius:20px;padding:2px 9px;margin-left:auto}
+  .chips{display:flex;gap:6px;margin-top:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .chip{flex:0 0 auto;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:#fff;border:2px solid var(--ink);border-radius:20px;padding:5px 12px;cursor:pointer;user-select:none;white-space:nowrap}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  .chip .d{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1.5px solid var(--ink)}
+
+  #map{flex:1;background:var(--paper)}
+  .leaflet-container{background:#e8e6df;font-family:'Gothic A1',sans-serif}
+
+  .pin{display:flex;align-items:center;justify-content:center;border:2.5px solid var(--ink);border-radius:50%;font-family:'Space Mono',monospace;font-weight:700;box-shadow:2px 2px 0 rgba(30,42,58,.35);width:29px;height:29px;font-size:12px;cursor:pointer}
+  .pin.popup{background:var(--coral);color:#fff}.pin.shop{background:var(--blue);color:#fff}
+  .pin.cafe{background:var(--matcha);color:#fff}.pin.dessert{background:var(--butter);color:var(--ink)}
+  .pin.star{width:42px;height:42px;font-size:19px;background:var(--coral);color:#fff;border-width:3px;box-shadow:3px 3px 0 var(--ink)}
+  .pin.dim{opacity:.22;filter:grayscale(.5)}
+
+  .leaflet-popup-content-wrapper{border:2.5px solid var(--ink);border-radius:12px;box-shadow:var(--shadow);padding:2px}
+  .leaflet-popup-content{margin:11px 13px;width:212px !important}
+  .leaflet-popup-tip{border:2.5px solid var(--ink)}
+  .pc .nm{font-weight:800;font-size:15px;line-height:1.2}
+  .pc .en{font-family:'Space Mono',monospace;font-size:10px;opacity:.6;margin:1px 0 6px}
+  .pc .rt{font-family:'Space Mono',monospace;font-size:12px;font-weight:700}
+  .pc .tp{font-size:12.5px;margin:6px 0 9px}
+  .pc a{display:inline-block;font-family:'Space Mono',monospace;font-weight:700;font-size:11px;text-decoration:none;color:#fff;background:var(--ink);border-radius:6px;padding:6px 11px}
+
+  .toggle{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:650;
+    font-family:'Black Han Sans',sans-serif;font-size:15px;letter-spacing:-.3px;
+    background:var(--ink);color:var(--paper);border:2.5px solid var(--ink);border-radius:30px;
+    padding:11px 22px;box-shadow:var(--shadow);cursor:pointer}
+  .toggle:active{transform:translateX(-50%) translate(1px,1px)}
+
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:700;height:86%;
+    background:var(--paper);border-top:2.5px solid var(--ink);border-radius:20px 20px 0 0;
+    transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    display:flex;flex-direction:column}
+  .sheet.open{transform:translateY(0)}
+  .grab{padding:9px 0 4px;text-align:center;cursor:pointer}
+  .grab .bar{display:inline-block;width:44px;height:5px;border-radius:5px;background:var(--ink);opacity:.35}
+  .shead{display:flex;align-items:center;justify-content:space-between;padding:2px 16px 10px;border-bottom:2px dashed var(--ink)}
+  .shead b{font-family:'Black Han Sans',sans-serif;font-weight:400;font-size:17px}
+  .close{font-family:'Space Mono',monospace;font-weight:700;font-size:12px;background:#fff;border:2px solid var(--ink);border-radius:20px;padding:5px 12px;cursor:pointer}
+  .list{overflow-y:auto;padding:6px 14px 30px;-webkit-overflow-scrolling:touch}
+  .catlbl{display:flex;align-items:center;gap:8px;margin:15px 2px 6px;font-family:'Black Han Sans',sans-serif;font-size:16px}
+  .catlbl .d{width:13px;height:13px;border:2px solid var(--ink);border-radius:50%}
+  .catlbl.popup .d{background:var(--coral)}.catlbl.shop .d{background:var(--blue)}
+  .catlbl.cafe .d{background:var(--matcha)}.catlbl.dessert .d{background:var(--butter)}
+  .card{position:relative;background:#fff;border:2.5px solid var(--ink);border-radius:13px;padding:11px 12px 10px 14px;margin-top:10px;box-shadow:var(--shadow)}
+  .card .head{display:flex;align-items:flex-start;gap:9px}
+  .num{flex:0 0 auto;width:23px;height:23px;border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:11px}
+  .num.popup{background:var(--coral);color:#fff}.num.shop{background:var(--blue);color:#fff}
+  .num.cafe{background:var(--matcha);color:#fff}.num.dessert{background:var(--butter);color:var(--ink)}
+  .card .nm{font-weight:800;font-size:15px;line-height:1.2}
+  .card .en{font-family:'Space Mono',monospace;font-size:10px;opacity:.6}
+  .card .rt{margin-left:auto;font-family:'Space Mono',monospace;font-weight:700;font-size:12px;text-align:right;white-space:nowrap}
+  .card .rt small{display:block;font-weight:400;font-size:9px;opacity:.6}
+  .card .tp{font-size:12.5px;margin:7px 0 0 32px}
+  .card .locate{margin:9px 0 0 32px;font-family:'Space Mono',monospace;font-weight:700;font-size:10.5px;background:var(--ink);color:#fff;border:none;border-radius:6px;padding:5px 11px;cursor:pointer}
+  .hidden{display:none !important}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="titlerow"><h1>성수 팝업파티 지도 🎀</h1><span class="date">7.17 FRI</span></div>
+    <div class="chips" id="chips">
+      <span class="chip" data-f="all" aria-pressed="true">전체</span>
+      <span class="chip" data-f="popup" aria-pressed="false"><span class="d" style="background:var(--coral)"></span>팝업</span>
+      <span class="chip" data-f="shop" aria-pressed="false"><span class="d" style="background:var(--blue)"></span>쇼핑</span>
+      <span class="chip" data-f="cafe" aria-pressed="false"><span class="d" style="background:var(--matcha)"></span>카페</span>
+      <span class="chip" data-f="dessert" aria-pressed="false"><span class="d" style="background:var(--butter)"></span>디저트</span>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <button class="toggle" id="toggle">목록보기 ↑</button>
+
+  <div class="sheet" id="sheet">
+    <div class="grab" id="grab"><span class="bar"></span></div>
+    <div class="shead"><b id="shtitle">전체 코스</b><button class="close" id="close">지도보기 ↓</button></div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const CONFIRM={n:'토니모리 20주년 UNCOMMON FACTORY',en:'확정 · 오후 1:00',
+  t:'메인 목적지! 연무장길 99. 근처(LCDC·프롤라·ETF)부터 도는 게 동선상 이득.',lat:37.540820,lng:127.060628};
+const P=[
+ {id:1,cat:'popup',n:'LCDC SEOUL',en:'편집숍·전시·카페',r:4.3,c:206,t:'층마다 팝업/전시가 바뀜. 토니모리 바로 근처.',lat:37.5415795,lng:127.0614594},
+ {id:2,cat:'popup',n:'성수연방',en:'Seongsu Federation',r:4.2,c:213,t:'옛 공장 복합몰. 중정 사진 예쁨.',lat:37.5415153,lng:127.0569694},
+ {id:3,cat:'popup',n:'무신사 테라스 성수',en:'Musinsa Terrace',r:4.3,c:20,t:'성수역 앞 3층. 팝업 자주 바뀜.',lat:37.5444502,lng:127.0553861},
+ {id:4,cat:'shop',n:'무신사 스탠다드 성수',en:'Musinsa Standard',r:4.9,c:538,t:'기본템 성지. 가격 착함.',lat:37.5415471,lng:127.058537},
+ {id:5,cat:'shop',n:'무신사 스토어 @대림창고',en:'Musinsa Store',r:4.9,c:933,t:'여러 브랜드 한 번에. 스니커즈 월.',lat:37.5415518,lng:127.0563869},
+ {id:6,cat:'shop',n:'올리브영 N성수',en:'Olive Young 플래그십',r:4.3,c:509,t:'3층 규모 뷰티 플래그십. 스킨/헤어 체험존, 면세 즉시환급.',lat:37.5441151,lng:127.054556},
+ {id:7,cat:'shop',n:'탬버린즈 성수',en:'Tamburins',r:4.5,c:249,t:'향수/핸드크림. 전시 같은 매장.',lat:37.5437671,lng:127.0526044},
+ {id:8,cat:'shop',n:'이솝 성수',en:'Aesop',r:4.4,c:71,t:'연무장길 메인. 향 테스트 추천.',lat:37.5422901,lng:127.0560067},
+ {id:9,cat:'shop',n:'luvluvluv',en:'스트릿 편집숍',r:5.0,c:541,t:'평점 5.0·리뷰 500+. 공간 힙함.',lat:37.5428458,lng:127.0534563},
+ {id:10,cat:'shop',n:'Point of View',en:'감성 문구·소품',r:4.4,c:212,t:'선물 사기 좋음. 웨이팅 있을 수 있음.',lat:37.5434188,lng:127.051374},
+ {id:11,cat:'shop',n:'TUNE 성수',en:'셀렉숍',r:4.8,c:13,t:'신발 셀렉 좋은 편집숍.',lat:37.5406045,lng:127.0547025},
+ {id:12,cat:'cafe',n:'대림창고',en:'Daelim Changgo',r:4.2,c:2822,t:'성수 랜드마크. 붉은벽돌 창고.',lat:37.5418384,lng:127.0564636},
+ {id:13,cat:'cafe',n:'어니언 성수',en:'Cafe Onion',r:4.2,c:3447,t:'팡도르+소금빵 시그니처. 오전에 여유.',lat:37.5447328,lng:127.0582091},
+ {id:14,cat:'cafe',n:'LowKey 성수',en:'LowKey Coffee',r:4.6,c:439,t:'스페셜티 커피 맛집. 핸드드립 강추.',lat:37.5441954,lng:127.0515838},
+ {id:15,cat:'cafe',n:'whyden coffee',en:'화이든 커피',r:5.0,c:256,t:'평점 5.0. 조용한 커피. (일요일 휴무)',lat:37.5475948,lng:127.0544362},
+ {id:16,cat:'cafe',n:'카페 씨떼',en:'CaféCité',r:4.8,c:389,t:'밝고 넓은 한복판 카페. 레몬타르트+콜드브루.',lat:37.5415673,lng:127.0557233},
+ {id:17,cat:'cafe',n:'Highline',en:'하이라인',r:4.9,c:469,t:'옥수수 라떼+프렌치토스트. 구역 남서쪽 끝.',lat:37.5389944,lng:127.0499414},
+ {id:18,cat:'dessert',n:'ETF베이커리 성수',en:'ETF Bakery',r:4.9,c:985,t:'브런치 추천! 베이글·반미 샌드위치·스콘 인기. 토니모리 근처.',lat:37.5400046,lng:127.0597092},
+ {id:19,cat:'dessert',n:'자연도 소금빵 성수',en:'Salt Bread',r:4.3,c:848,t:'성수 소금빵 대표. 회전 빠름.',lat:37.5423017,lng:127.0554582},
+ {id:20,cat:'dessert',n:'보카도버터 성수',en:'Bocado Butter',r:4.9,c:178,t:'크레페+버터크림 라떼. 아담하고 픽업 편함.',lat:37.5429956,lng:127.0555748},
+ {id:21,cat:'dessert',n:'아임도넛 성수',en:"I'm donut?",r:4.4,c:95,t:'폭신폭신 생도넛. 줄 서도 회전 빠름, 좌석은 없음.',lat:37.5436478,lng:127.0539257},
+ {id:22,cat:'dessert',n:'Frolla',en:'프롤라',r:4.7,c:247,t:'정통 티라미수. 토니모리 근처 세트 코스.',lat:37.5412734,lng:127.0609456},
+ {id:23,cat:'dessert',n:'성수르치아바타',en:'치아바타 샌드위치',r:3.0,c:2,t:'천하제빵 치아바타 샌드위치 전문. (리뷰 적은 신상)',lat:37.5432452,lng:127.0541955},
+ {id:24,cat:'dessert',n:'Aqua Santa',en:'아쿠아산타',r:4.8,c:155,t:'초코딸기케이크 시그니처. 여름엔 빙수/슬러시.',lat:37.541642,lng:127.0582107}
+];
+const CATNAME={popup:'팝업',shop:'쇼핑',cafe:'카페',dessert:'디저트'};
+const gmap=(lat,lng)=>`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+const map=L.map('map',{zoomControl:false}).setView([37.5425,127.0565],15);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  {attribution:'© OpenStreetMap · © CARTO',subdomains:'abcd',maxZoom:20}).addTo(map);
+
+function popHTML(p,star){
+  const rt = p.r ? `<div class="rt">★ ${p.r.toFixed(1)} <span style="opacity:.55">(${p.c.toLocaleString()})</span></div>`:'';
+  const head = star ? `⭐ ${p.n}` : `${p.id}. ${p.n}`;
+  return `<div class="pc"><div class="nm">${head}</div><div class="en">${p.en}</div>${rt}
+    <div class="tp">${p.t}</div><a href="${gmap(p.lat,p.lng)}" target="_blank" rel="noopener">지도 앱에서 열기 →</a></div>`;
+}
+const markers={};
+markers.star=L.marker([CONFIRM.lat,CONFIRM.lng],{icon:L.divIcon({className:'',html:'<div class="pin star">★</div>',iconSize:[42,42],iconAnchor:[21,21]}),zIndexOffset:1000})
+  .addTo(map).bindPopup(popHTML(CONFIRM,true));
+P.forEach(p=>{
+  markers[p.id]=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:`<div class="pin ${p.cat}">${p.id}</div>`,iconSize:[29,29],iconAnchor:[15,15]})})
+    .addTo(map).bindPopup(popHTML(p));
+});
+// fit to all
+const grp=L.featureGroup(Object.values(markers)); map.fitBounds(grp.getBounds().pad(0.12));
+
+const listEl=document.getElementById('list');
+function buildList(f){
+  listEl.innerHTML='';
+  ['popup','shop','cafe','dessert'].forEach(cat=>{
+    if(f!=='all'&&f!==cat) return;
+    const items=P.filter(p=>p.cat===cat);
+    const l=document.createElement('div'); l.className='catlbl '+cat;
+    l.innerHTML=`<span class="d"></span>${CATNAME[cat]} <span style="font-family:'Space Mono';font-size:12px;opacity:.5">(${items.length})</span>`;
+    listEl.appendChild(l);
+    items.forEach(p=>{
+      const c=document.createElement('div'); c.className='card';
+      c.innerHTML=`<div class="head"><span class="num ${cat}">${p.id}</span>
+        <div><div class="nm">${p.n}</div><div class="en">${p.en}</div></div>
+        <div class="rt">★${p.r.toFixed(1)}<small>${p.c.toLocaleString()}</small></div></div>
+        <div class="tp">${p.t}</div>
+        <button class="locate" data-id="${p.id}">📍 지도에서 보기</button>`;
+      listEl.appendChild(c);
+    });
+  });
+}
+buildList('all');
+listEl.addEventListener('click',e=>{
+  const b=e.target.closest('.locate'); if(!b) return;
+  const id=+b.dataset.id, p=P.find(x=>x.id===id);
+  closeSheet(); map.flyTo([p.lat,p.lng],17,{duration:.6});
+  setTimeout(()=>markers[id].openPopup(),650);
+});
+
+const sheet=document.getElementById('sheet'), toggle=document.getElementById('toggle');
+function openSheet(){sheet.classList.add('open');toggle.style.display='none'}
+function closeSheet(){sheet.classList.remove('open');toggle.style.display='block'}
+toggle.onclick=openSheet; document.getElementById('close').onclick=closeSheet; document.getElementById('grab').onclick=closeSheet;
+
+const chips=document.querySelectorAll('.chip');
+chips.forEach(chip=>chip.addEventListener('click',()=>{
+  chips.forEach(c=>c.setAttribute('aria-pressed','false')); chip.setAttribute('aria-pressed','true');
+  const f=chip.dataset.f;
+  P.forEach(p=>{const el=markers[p.id].getElement(); if(el){const pin=el.querySelector('.pin'); if(pin) pin.classList.toggle('dim',!(f==='all'||p.cat===f));}});
+  buildList(f);
+  document.getElementById('shtitle').textContent=(f==='all'?'전체 코스':CATNAME[f]+' 코스');
+}));
+</script>
+</body>
+</html>
