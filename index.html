@@ -94,7 +94,7 @@
       <span class="chip" data-f="cafe" aria-pressed="false"><span class="d" style="background:var(--matcha)"></span>카페</span>
       <span class="chip" data-f="dessert" aria-pressed="false"><span class="d" style="background:var(--butter)"></span>디저트</span>
     </div>
-    <a class="popbtn" href="https://map.naver.com/p/search/%ED%8C%9D%EC%97%85?c=15.00,0,0,0,dh" target="_blank" rel="noopener">🔥 실시간 팝업정보 (네이버 지도) →</a>
+    <a class="popbtn" id="naverPopup" href="https://map.naver.com/p/search/%EC%84%B1%EC%88%98%20%ED%8C%9D%EC%97%85?c=15.00,0,0,0,dh" target="_blank" rel="noopener">🔥 실시간 팝업정보 (네이버 지도) →</a>
   </div>
 
   <div id="map"></div>
@@ -206,6 +206,17 @@ chips.forEach(chip=>chip.addEventListener('click',()=>{
   buildList(f);
   document.getElementById('shtitle').textContent=(f==='all'?'전체 코스':CATNAME[f]+' 코스');
 }));
+
+// 모바일: 네이버 지도 앱으로 '팝업' 검색어 전달 (웹 URL은 앱 전환 시 검색어가 유실됨)
+document.getElementById('naverPopup').addEventListener('click',e=>{
+  if(!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+  e.preventDefault();
+  const web=e.currentTarget.href;
+  const appName=location.hostname||'sstour';
+  const t=setTimeout(()=>{location.href=web;},1200); // 앱 미설치 시 웹으로 폴백
+  window.addEventListener('pagehide',()=>clearTimeout(t),{once:true});
+  location.href='nmap://search?query='+encodeURIComponent('성수 팝업')+'&appname='+encodeURIComponent(appName);
+});
 </script>
 </body>
 </html>
